@@ -1,18 +1,6 @@
 const std = @import("std");
 const ini = @import("ini");
 
-const config =
-    \\[Meta]
-    \\author = xq
-    \\library = ini
-    \\
-    \\[Albums]
-    \\Thriller
-    \\Back in Black
-    \\Bat Out of Hell
-    \\The Dark Side of the Moon
-;
-
 pub fn main() !void {
     const file = try std.fs.cwd().openFile("example.ini", .{});
     defer file.close();
