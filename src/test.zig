@@ -1,79 +1,6 @@
 const std = @import("std");
 
-pub const Record = union(enum) {
-    /// A section heading enclosed in `[` and `]`. The brackets are not included.
-    section: []const u8,
-
-    /// A line that contains a key-value pair separated by `=`.
-    /// Both key and value have the excess whitespace trimmed.
-    /// Both key and value allow escaping with C string syntax.
-    property: KeyValue,
-
-    /// A line that is either escaped as a C string or contains no `=`
-    enumeration: []const u8,
-};
-
-pub const KeyValue = struct {
-    key: []const u8,
-    value: []const u8,
-};
-
-fn Iterator(comptime Reader: type) type {
-    return struct {
-        const Self = @This();
-
-        line_buffer: std.ArrayList(u8),
-        reader: Reader,
-
-        pub fn deinit(self: *Self) void {
-            self.line_buffer.deinit();
-            self.* = undefined;
-        }
-
-        pub fn next(self: *Self) !?Record {
-            while (true) {
-                self.reader.readUntilDelimiterArrayList(&self.line_buffer, '\n', 4096) catch |err| switch (err) {
-                    error.EndOfStream => {
-                        if (self.line_buffer.items.len == 0)
-                            return null;
-                    },
-                    else => |e| return e,
-                };
-
-                const whitespace = " \r\t";
-                const line = if (std.mem.indexOfScalar(u8, self.line_buffer.items, '#')) |index|
-                    std.mem.trim(u8, self.line_buffer.items[0..index], whitespace)
-                else
-                    std.mem.trim(u8, self.line_buffer.items, whitespace);
-                if (line.len == 0)
-                    continue;
-
-                if (std.mem.startsWith(u8, line, "[") and std.mem.endsWith(u8, line, "]")) {
-                    return Record{ .section = line[1 .. line.len - 1] };
-                }
-
-                // TODO: Implement proper string escaping
-
-                if (std.mem.indexOfScalar(u8, line, '=')) |index| {
-                    return Record{ .property = KeyValue{
-                        .key = std.mem.trim(u8, line[0..index], whitespace),
-                        .value = std.mem.trim(u8, line[index + 1 ..], whitespace),
-                    } };
-                }
-
-                return Record{ .enumeration = line };
-            }
-        }
-    };
-}
-
-/// Returns a new parser that can read the ini structure
-pub fn parse(allocator: *std.mem.Allocator, reader: anytype) Iterator(@TypeOf(reader)) {
-    return Iterator(@TypeOf(reader)){
-        .line_buffer = std.ArrayList(u8).init(allocator),
-        .reader = reader,
-    };
-}
+usingnamespace @import("ini.zig");
 
 fn expectNull(record: ?Record) void {
     std.testing.expectEqual(@as(?Record, null), record);
@@ -208,6 +135,36 @@ test "mixed data" {
     expectEnumeration("Back in Black", try parser.next());
     expectEnumeration("Bat Out of Hell", try parser.next());
     expectEnumeration("The Dark Side of the Moon", try parser.next());
+
+    expectNull(try parser.next());
+}
+
+test "# comments" {
+    var parser = parse(std.testing.allocator, std.io.fixedBufferStream(
+        \\[section] # comment
+        \\key = value # comment
+        \\enum # comment
+    ).reader());
+    defer parser.deinit();
+
+    expectSection("section", try parser.next());
+    expectKeyValue("key", "value", try parser.next());
+    expectEnumeration("enum", try parser.next());
+
+    expectNull(try parser.next());
+}
+
+test "; comments" {
+    var parser = parse(std.testing.allocator, std.io.fixedBufferStream(
+        \\[section] ; comment
+        \\key = value ; comment
+        \\enum ; comment
+    ).reader());
+    defer parser.deinit();
+
+    expectSection("section", try parser.next());
+    expectKeyValue("key", "value", try parser.next());
+    expectEnumeration("enum", try parser.next());
 
     expectNull(try parser.next());
 }
