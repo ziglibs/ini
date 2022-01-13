@@ -1,40 +1,42 @@
 const std = @import("std");
 
-usingnamespace @import("ini.zig");
+const ini = @import("ini.zig");
+const parse = ini.parse;
+const Record = ini.Record;
 
-fn expectNull(record: ?Record) void {
-    std.testing.expectEqual(@as(?Record, null), record);
+fn expectNull(record: ?Record) !void {
+    try std.testing.expectEqual(@as(?Record, null), record);
 }
 
-fn expectSection(heading: []const u8, record: ?Record) void {
-    std.testing.expectEqualStrings(heading, record.?.section);
+fn expectSection(heading: []const u8, record: ?Record) !void {
+    try std.testing.expectEqualStrings(heading, record.?.section);
 }
 
-fn expectKeyValue(key: []const u8, value: []const u8, record: ?Record) void {
-    std.testing.expectEqualStrings(key, record.?.property.key);
-    std.testing.expectEqualStrings(value, record.?.property.value);
+fn expectKeyValue(key: []const u8, value: []const u8, record: ?Record) !void {
+    try std.testing.expectEqualStrings(key, record.?.property.key);
+    try std.testing.expectEqualStrings(value, record.?.property.value);
 }
 
-fn expectEnumeration(enumeration: []const u8, record: ?Record) void {
-    std.testing.expectEqualStrings(enumeration, record.?.enumeration);
+fn expectEnumeration(enumeration: []const u8, record: ?Record) !void {
+    try std.testing.expectEqualStrings(enumeration, record.?.enumeration);
 }
 
 test "empty file" {
     var parser = parse(std.testing.allocator, std.io.fixedBufferStream("").reader());
     defer parser.deinit();
 
-    expectNull(try parser.next());
-    expectNull(try parser.next());
-    expectNull(try parser.next());
-    expectNull(try parser.next());
+    try expectNull(try parser.next());
+    try expectNull(try parser.next());
+    try expectNull(try parser.next());
+    try expectNull(try parser.next());
 }
 
 test "section" {
     var parser = parse(std.testing.allocator, std.io.fixedBufferStream("[Hello]").reader());
     defer parser.deinit();
 
-    expectSection("Hello", try parser.next());
-    expectNull(try parser.next());
+    try expectSection("Hello", try parser.next());
+    try expectNull(try parser.next());
 }
 
 test "key-value-pair" {
@@ -59,8 +61,8 @@ test "key-value-pair" {
         var parser = parse(std.testing.allocator, std.io.fixedBufferStream(pattern).reader());
         defer parser.deinit();
 
-        expectKeyValue("key", "value", try parser.next());
-        expectNull(try parser.next());
+        try expectKeyValue("key", "value", try parser.next());
+        try expectNull(try parser.next());
     }
 }
 
@@ -68,47 +70,47 @@ test "enumeration" {
     var parser = parse(std.testing.allocator, std.io.fixedBufferStream("enum").reader());
     defer parser.deinit();
 
-    expectEnumeration("enum", try parser.next());
-    expectNull(try parser.next());
+    try expectEnumeration("enum", try parser.next());
+    try expectNull(try parser.next());
 }
 
 test "empty line skipping" {
     var parser = parse(std.testing.allocator, std.io.fixedBufferStream("item a\r\n\r\n\r\nitem b").reader());
     defer parser.deinit();
 
-    expectEnumeration("item a", try parser.next());
-    expectEnumeration("item b", try parser.next());
-    expectNull(try parser.next());
+    try expectEnumeration("item a", try parser.next());
+    try expectEnumeration("item b", try parser.next());
+    try expectNull(try parser.next());
 }
 
 test "multiple sections" {
     var parser = parse(std.testing.allocator, std.io.fixedBufferStream("  [Hello] \r\n[Foo Bar]\n[Hello!]\n").reader());
     defer parser.deinit();
 
-    expectSection("Hello", try parser.next());
-    expectSection("Foo Bar", try parser.next());
-    expectSection("Hello!", try parser.next());
-    expectNull(try parser.next());
+    try expectSection("Hello", try parser.next());
+    try expectSection("Foo Bar", try parser.next());
+    try expectSection("Hello!", try parser.next());
+    try expectNull(try parser.next());
 }
 
 test "multiple properties" {
     var parser = parse(std.testing.allocator, std.io.fixedBufferStream("a = b\r\nc =\r\nkey value = core property").reader());
     defer parser.deinit();
 
-    expectKeyValue("a", "b", try parser.next());
-    expectKeyValue("c", "", try parser.next());
-    expectKeyValue("key value", "core property", try parser.next());
-    expectNull(try parser.next());
+    try expectKeyValue("a", "b", try parser.next());
+    try expectKeyValue("c", "", try parser.next());
+    try expectKeyValue("key value", "core property", try parser.next());
+    try expectNull(try parser.next());
 }
 
 test "multiple enumeration" {
     var parser = parse(std.testing.allocator, std.io.fixedBufferStream(" a  \n b  \r\n c  ").reader());
     defer parser.deinit();
 
-    expectEnumeration("a", try parser.next());
-    expectEnumeration("b", try parser.next());
-    expectEnumeration("c", try parser.next());
-    expectNull(try parser.next());
+    try expectEnumeration("a", try parser.next());
+    try expectEnumeration("b", try parser.next());
+    try expectEnumeration("c", try parser.next());
+    try expectNull(try parser.next());
 }
 
 test "mixed data" {
@@ -125,18 +127,18 @@ test "mixed data" {
     ).reader());
     defer parser.deinit();
 
-    expectSection("Meta", try parser.next());
-    expectKeyValue("author", "xq", try parser.next());
-    expectKeyValue("library", "ini", try parser.next());
+    try expectSection("Meta", try parser.next());
+    try expectKeyValue("author", "xq", try parser.next());
+    try expectKeyValue("library", "ini", try parser.next());
 
-    expectSection("Albums", try parser.next());
+    try expectSection("Albums", try parser.next());
 
-    expectEnumeration("Thriller", try parser.next());
-    expectEnumeration("Back in Black", try parser.next());
-    expectEnumeration("Bat Out of Hell", try parser.next());
-    expectEnumeration("The Dark Side of the Moon", try parser.next());
+    try expectEnumeration("Thriller", try parser.next());
+    try expectEnumeration("Back in Black", try parser.next());
+    try expectEnumeration("Bat Out of Hell", try parser.next());
+    try expectEnumeration("The Dark Side of the Moon", try parser.next());
 
-    expectNull(try parser.next());
+    try expectNull(try parser.next());
 }
 
 test "# comments" {
@@ -147,11 +149,11 @@ test "# comments" {
     ).reader());
     defer parser.deinit();
 
-    expectSection("section", try parser.next());
-    expectKeyValue("key", "value", try parser.next());
-    expectEnumeration("enum", try parser.next());
+    try expectSection("section", try parser.next());
+    try expectKeyValue("key", "value", try parser.next());
+    try expectEnumeration("enum", try parser.next());
 
-    expectNull(try parser.next());
+    try expectNull(try parser.next());
 }
 
 test "; comments" {
@@ -162,9 +164,9 @@ test "; comments" {
     ).reader());
     defer parser.deinit();
 
-    expectSection("section", try parser.next());
-    expectKeyValue("key", "value", try parser.next());
-    expectEnumeration("enum", try parser.next());
+    try expectSection("section", try parser.next());
+    try expectKeyValue("key", "value", try parser.next());
+    try expectEnumeration("enum", try parser.next());
 
-    expectNull(try parser.next());
+    try expectNull(try parser.next());
 }

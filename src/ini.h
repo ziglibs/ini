@@ -14,7 +14,7 @@ struct ini_Parser
   alignas(16) char opaque[128];
 };
 
-enum ini_RecordType
+enum ini_RecordType : int
 {
   INI_RECORD_NUL = 0,
   INI_RECORD_SECTION = 1,

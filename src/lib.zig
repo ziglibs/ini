@@ -9,7 +9,7 @@ const Record = extern struct {
     type: Type,
     value: Data,
 
-    const Type = extern enum {
+    const Type = enum(c.ini_RecordType) {
         nul = 0,
         section = 1,
         property = 2,
@@ -38,7 +38,7 @@ const IniParser = union(enum) {
     file: ini.Parser(CReader),
 };
 
-const IniError = extern enum {
+const IniError = enum(c.ini_Error) {
     success = 0,
     out_of_memory = 1,
     io = 2,
@@ -138,21 +138,21 @@ fn cReader(c_file: *std.c.FILE) CReader {
 }
 
 fn cReaderRead(c_file: *std.c.FILE, bytes: []u8) std.fs.File.ReadError!usize {
-    const amt_written = std.c.fread(bytes.ptr, 1, bytes.len, c_file);
-    if (amt_written >= 0) return amt_written;
-    switch (std.c._errno().*) {
-        0 => unreachable,
-        os.EINVAL => unreachable,
-        os.EFAULT => unreachable,
-        os.EAGAIN => unreachable, // this is a blocking API
-        os.EBADF => unreachable, // always a race condition
-        os.EDESTADDRREQ => unreachable, // connect was never called
-        os.EDQUOT => return error.DiskQuota,
-        os.EFBIG => return error.FileTooBig,
-        os.EIO => return error.InputOutput,
-        os.ENOSPC => return error.NoSpaceLeft,
-        os.EPERM => return error.AccessDenied,
-        os.EPIPE => return error.BrokenPipe,
+    const amt_read = std.c.fread(bytes.ptr, 1, bytes.len, c_file);
+    if (amt_read >= 0) return amt_read;
+    switch (@intToEnum(std.os.E, std.c._errno().*)) {
+        .SUCCESS => unreachable,
+        .INVAL => unreachable,
+        .FAULT => unreachable,
+        .AGAIN => unreachable, // this is a blocking API
+        .BADF => unreachable, // always a race condition
+        .DESTADDRREQ => unreachable, // connect was never called
+        .DQUOT => return error.DiskQuota,
+        .FBIG => return error.FileTooBig,
+        .IO => return error.InputOutput,
+        .NOSPC => return error.NoSpaceLeft,
+        .PERM => return error.AccessDenied,
+        .PIPE => return error.BrokenPipe,
         else => |err| return std.os.unexpectedErrno(err),
     }
 }
