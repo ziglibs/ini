@@ -85,7 +85,7 @@ pub fn Parser(comptime Reader: type) type {
 }
 
 /// Returns a new parser that can read the ini structure
-pub fn parse(allocator: *std.mem.Allocator, reader: anytype) Parser(@TypeOf(reader)) {
+pub fn parse(allocator: std.mem.Allocator, reader: anytype) Parser(@TypeOf(reader)) {
     return Parser(@TypeOf(reader)){
         .line_buffer = std.ArrayList(u8).init(allocator),
         .reader = reader,
