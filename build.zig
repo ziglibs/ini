@@ -5,14 +5,14 @@ pub fn build(b: *std.build.Builder) void {
 
     const lib = b.addStaticLibrary("ini", "src/lib.zig");
     lib.bundle_compiler_rt = true;
-    lib.addIncludeDir("src");
+    lib.addIncludePath("src");
     lib.linkLibC();
     lib.setBuildMode(mode);
     lib.install();
 
     const example_c = b.addExecutable("example-c", null);
     example_c.addCSourceFile("example/example.c", &[_][]const u8{ "-Wall", "-Wextra", "-pedantic" });
-    example_c.addIncludeDir("src");
+    example_c.addIncludePath("src");
     example_c.linkLibrary(lib);
     example_c.linkLibC();
     example_c.setBuildMode(mode);
@@ -27,7 +27,7 @@ pub fn build(b: *std.build.Builder) void {
     main_tests.setBuildMode(mode);
 
     var binding_tests = b.addTest("src/lib-test.zig");
-    binding_tests.addIncludeDir("src");
+    binding_tests.addIncludePath("src");
     binding_tests.linkLibrary(lib);
     binding_tests.linkLibC();
     binding_tests.setBuildMode(mode);

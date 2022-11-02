@@ -5,7 +5,9 @@ pub fn main() !void {
     const file = try std.fs.cwd().openFile("example.ini", .{});
     defer file.close();
 
-    var parser = ini.parse(std.testing.allocator, file.reader());
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer if (gpa.deinit()) @panic("memory leaked");
+    var parser = ini.parse(gpa.allocator(), file.reader());
     defer parser.deinit();
 
     var writer = std.io.getStdOut().writer();
