@@ -140,7 +140,7 @@ fn cReader(c_file: *std.c.FILE) CReader {
 fn cReaderRead(c_file: *std.c.FILE, bytes: []u8) std.fs.File.ReadError!usize {
     const amt_read = std.c.fread(bytes.ptr, 1, bytes.len, c_file);
     if (amt_read >= 0) return amt_read;
-    switch (@intToEnum(std.os.E, std.c._errno().*)) {
+    switch (@as(std.os.E, @enumFromInt(std.c._errno().*))) {
         .SUCCESS => unreachable,
         .INVAL => unreachable,
         .FAULT => unreachable,
