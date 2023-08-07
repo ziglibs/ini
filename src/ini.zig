@@ -29,7 +29,7 @@ const whitespace = " \r\t\x00";
 /// This function will override the character after the slice end,
 /// so make sure there is one available!
 fn insertNulTerminator(slice: []const u8) [:0]const u8 {
-    const mut_ptr = @intToPtr([*]u8, @ptrToInt(slice.ptr));
+    const mut_ptr = @as([*]u8, @ptrFromInt(@intFromPtr(slice.ptr)));
     mut_ptr[slice.len] = 0;
     return mut_ptr[0..slice.len :0];
 }
