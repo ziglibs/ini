@@ -2,9 +2,10 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
+    const target = b.standardTargetOptions(.{});
 
     _ = b.addModule("ini", .{
-        .source_file = .{
+        .root_source_file = .{
             .path = "src/ini.zig",
         },
     });
@@ -12,7 +13,7 @@ pub fn build(b: *std.Build) void {
     const lib = b.addStaticLibrary(.{
         .name = "ini",
         .root_source_file = .{ .path = "src/lib.zig" },
-        .target = b.standardTargetOptions(.{}),
+        .target = target,
         .optimize = optimize,
     });
     lib.bundle_compiler_rt = true;
@@ -24,6 +25,7 @@ pub fn build(b: *std.Build) void {
     const example_c = b.addExecutable(.{
         .name = "example-c",
         .optimize = optimize,
+        .target = target,
     });
     example_c.addCSourceFile(.{
         .file = .{
@@ -45,8 +47,9 @@ pub fn build(b: *std.Build) void {
         .name = "example-zig",
         .root_source_file = .{ .path = "example/example.zig" },
         .optimize = optimize,
+        .target = target,
     });
-    example_zig.addModule("ini", b.modules.get("ini").?);
+    example_zig.root_module.addImport("ini", b.modules.get("ini").?);
 
     b.installArtifact(example_zig);
 
