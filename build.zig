@@ -16,6 +16,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
     lib.bundle_compiler_rt = true;
     lib.addIncludePath(.{ .path = "src" });
     lib.linkLibC();
