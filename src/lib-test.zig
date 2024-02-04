@@ -78,7 +78,7 @@ test "buffer parser" {
 }
 
 test "file parser" {
-    var file = c.fopen("example/example.ini", "rb") orelse unreachable;
+    const file = c.fopen("example/example.ini", "rb") orelse unreachable;
     defer _ = c.fclose(file);
 
     var parser: c.ini_Parser = undefined;
