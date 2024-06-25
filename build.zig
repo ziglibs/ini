@@ -1,18 +1,32 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
+    // get optimize and target
     const optimize = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{});
 
-    _ = b.addModule("ini", .{
-        .root_source_file = .{
-            .path = "src/ini.zig",
-        },
+    // expose the ini module
+    const ini = b.addModule("ini", .{
+        .root_source_file = b.path("src/ini.zig"),
     });
 
+    // create c lib
+    const c_lib = createCLib(b, optimize, target);
+
+    // for zig example
+    example(b, optimize, target, ini);
+
+    // for c example
+    cExample(b, optimize, target, c_lib);
+
+    // for uint test
+    unitTest(b, optimize, target, ini, c_lib);
+}
+
+fn createCLib(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget) *std.Build.Step.Compile {
     const lib = b.addStaticLibrary(.{
         .name = "ini",
-        .root_source_file = .{ .path = "src/lib.zig" },
+        .root_source_file = b.path("src/lib.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -21,53 +35,72 @@ pub fn build(b: *std.Build) void {
     lib.addIncludePath(.{ .path = "src" });
     lib.linkLibC();
 
-    b.installArtifact(lib);
+    const intall_step = b.addInstallArtifact(lib, .{});
 
-    const example_c = b.addExecutable(.{
+    const install_step = b.step("clib", "install c lib");
+
+    install_step.dependOn(&intall_step.step);
+
+    return lib;
+}
+
+fn example(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget, ini: *std.Build.Module) void {
+    const example_zig = b.addExecutable(.{
+        .name = "example-zig",
+        .root_source_file = b.path("example/example.zig"),
+        .optimize = optimize,
+        .target = target,
+    });
+    example_zig.root_module.addImport("ini", ini);
+
+    const intall_step = b.addInstallArtifact(example_zig, .{});
+    const install_step = b.step("example", "install zig example");
+    install_step.dependOn(&intall_step.step);
+}
+
+fn cExample(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget, c_lib: *std.Build.Step.Compile) void {
+    const c_example = b.addExecutable(.{
         .name = "example-c",
         .optimize = optimize,
         .target = target,
     });
-    example_c.addCSourceFile(.{
-        .file = .{
-            .path = "example/example.c",
-        },
+
+    c_example.addCSourceFile(.{
+        .file = b.path("example/example.c"),
         .flags = &.{
             "-Wall",
             "-Wextra",
             "-pedantic",
         },
     });
-    example_c.addIncludePath(.{ .path = "src" });
-    example_c.linkLibrary(lib);
-    example_c.linkLibC();
 
-    b.installArtifact(example_c);
+    c_example.addIncludePath(.{ .path = "src" });
+    c_example.linkLibrary(c_lib);
+    c_example.linkLibC();
 
-    const example_zig = b.addExecutable(.{
-        .name = "example-zig",
-        .root_source_file = .{ .path = "example/example.zig" },
+    const intall_step = b.addInstallArtifact(c_example, .{});
+    const install_step = b.step("c_example", "install c example");
+    install_step.dependOn(&intall_step.step);
+}
+
+fn unitTest(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget, ini: *std.Build.Module, c_lib: *std.Build.Step.Compile) void {
+    var main_tests = b.addTest(.{
+        .root_source_file = b.path("src/test.zig"),
         .optimize = optimize,
         .target = target,
     });
-    example_zig.root_module.addImport("ini", b.modules.get("ini").?);
-
-    b.installArtifact(example_zig);
-
-    var main_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/test.zig" },
-        .optimize = optimize,
-    });
+    main_tests.root_module.addImport("ini", ini);
 
     var binding_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/lib-test.zig" },
+        .root_source_file = b.path("src/lib-test.zig"),
         .optimize = optimize,
+        .target = target,
     });
-    binding_tests.addIncludePath(.{ .path = "src" });
-    binding_tests.linkLibrary(lib);
+    binding_tests.addIncludePath(b.path("src"));
+    binding_tests.linkLibrary(c_lib);
     binding_tests.linkLibC();
 
-    const test_step = b.step("test", "Run library tests");
+    const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&main_tests.step);
     test_step.dependOn(&binding_tests.step);
 }

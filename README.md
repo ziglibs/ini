@@ -1,81 +1,41 @@
 # INI parser library
 
 This is a very simple ini-parser library that provides:
+
 - Raw record reading
 - Leading/trailing whitespace removal
 - comments based on `;` and `#`
 - Zig API
 - C API
 
-## Usage example
+## Example
 
-### Zig 
+Please see the flolder `example`!
 
-```zig
-const std = @import("std");
-const ini = @import("ini");
+## Install
 
-pub fn main() !void {
-    const file = try std.fs.cwd().openFile("example.ini", .{});
-    defer file.close();
+version: zig `0.12.0` or higher
 
-    var parser = ini.parse(std.testing.allocator, file.reader());
-    defer parser.deinit();
+1. Add to `build.zig.zon`
 
-    var writer = std.io.getStdOut().writer();
-
-    while (try parser.next()) |record| {
-        switch (record) {
-            .section => |heading| try writer.print("[{s}]\n", .{heading}),
-            .property => |kv| try writer.print("{s} = {s}\n", .{ kv.key, kv.value }),
-            .enumeration => |value| try writer.print("{s}\n", .{value}),
-        }
-    }
-}
+```sh
+# It is recommended to replace the following branch with commit id
+zig fetch --save https://github.com/ziglibs/ini/archive/master.tar.gz
+# Of course, you can also use git+https to fetch this package!
 ```
 
-### C
+2. Config `build.zig`
 
-```c
-#include <ini.h>
+Add this:
 
-#include <stdio.h>
-#include <stdbool.h>
+```zig
+// To standardize development, maybe you should use `lazyDependency()` instead of `dependency()`
+// more info to see: https://ziglang.org/download/0.12.0/release-notes.html#toc-Lazy-Dependencies
+const ini = b.dependency("ini", .{
+    .target = target,
+    .optimize = optimize,
+});
 
-int main() {
-  FILE * f = fopen("example.ini", "rb");
-  if(!f)
-    return 1;
-  
-  struct ini_Parser parser;
-  ini_create_file(&parser, f);
-
-  struct ini_Record record;
-  while(true)
-  {
-    enum ini_Error error = ini_next(&parser, &record);
-    if(error != INI_SUCCESS)
-      goto cleanup;
-    
-    switch(record.type) {
-      case INI_RECORD_NUL: goto done;
-      case INI_RECORD_SECTION:
-        printf("[%s]\n", record.section);
-        break;
-      case INI_RECORD_PROPERTY:
-        printf("%s = %s\n", record.property.key, record.property.value);
-        break;
-      case INI_RECORD_ENUMERATION:
-        printf("%s\n", record.enumeration);
-        break;
-    }
-
-  }
-done:
-
-cleanup:
-  ini_destroy(&parser);
-  fclose(f);
-  return 0;
-}
+// add module
+exe.root_module.addImport("ini", ini.module("ini"));
 ```

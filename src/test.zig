@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const ini = @import("ini.zig");
+const ini = @import("ini");
 const parse = ini.parse;
 const Record = ini.Record;
 
