@@ -181,3 +181,36 @@ test "; comments" {
 
     try expectNull(try parser.next());
 }
+
+test "comment escaping" {
+    var stream = std.io.fixedBufferStream(
+        \\# This comment should be ignored
+        \\#
+        \\# Amazing!
+        \\names = Budgie;GNOME # Don't mind me
+        \\asterisk = \# # An asterisk as a comment character? Surely that can't break anything... right?
+        \\no_value = #This doesn't have any value
+    );
+    var parser = parse(std.testing.allocator, stream.reader(), "#");
+    defer parser.deinit();
+
+    try expectKeyValue("names", "Budgie;GNOME", try parser.next());
+    try expectKeyValue("asterisk", "#", try parser.next());
+    try expectKeyValue("no_value", "", try parser.next());
+
+    try expectNull(try parser.next());
+}
+
+test "comment character selection" {
+    var stream = std.io.fixedBufferStream(
+        \\# This is a comment
+        \\? But this is also one!
+        \\just_a_key = value
+    );
+    var parser = parse(std.testing.allocator, stream.reader(), "#?");
+    defer parser.deinit();
+
+    try expectKeyValue("just_a_key", "value", try parser.next());
+
+    try expectNull(try parser.next());
+}
