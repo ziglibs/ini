@@ -62,20 +62,20 @@ comptime {
         @compileError("align mismatch: ini_KeyValuePair struct does not match Record.KeyValuePair!");
 }
 
-export fn ini_create_buffer(parser: *IniParser, data: [*]const u8, length: usize) void {
+export fn ini_create_buffer(parser: *IniParser, data: [*]const u8, data_length: usize, comment_characters: [*]const u8, comment_characters_length: usize) void {
     parser.* = IniParser{
         .buffer = .{
-            .stream = std.io.fixedBufferStream(data[0..length]),
+            .stream = std.io.fixedBufferStream(data[0..data_length]),
             .parser = undefined,
         },
     };
     // this is required to have the parser store a pointer to the stream.
-    parser.buffer.parser = ini.parse(std.heap.c_allocator, parser.buffer.stream.reader());
+    parser.buffer.parser = ini.parse(std.heap.c_allocator, parser.buffer.stream.reader(), comment_characters[0..comment_characters_length]);
 }
 
-export fn ini_create_file(parser: *IniParser, file: *std.c.FILE) void {
+export fn ini_create_file(parser: *IniParser, file: *std.c.FILE, comment_characters: [*]const u8, comment_characters_length: usize) void {
     parser.* = IniParser{
-        .file = ini.parse(std.heap.c_allocator, cReader(file)),
+        .file = ini.parse(std.heap.c_allocator, cReader(file), comment_characters[0..comment_characters_length]),
     };
 }
 
