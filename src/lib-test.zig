@@ -6,7 +6,7 @@ const c = @cImport({
 
 test "parser create/destroy" {
     var buffer: c.ini_Parser = undefined;
-    c.ini_create_buffer(&buffer, "", 0);
+    c.ini_create_buffer(&buffer, "", 0, "", 0);
     c.ini_destroy(&buffer);
 }
 
@@ -71,7 +71,7 @@ test "buffer parser" {
     ;
 
     var parser: c.ini_Parser = undefined;
-    c.ini_create_buffer(&parser, slice, slice.len);
+    c.ini_create_buffer(&parser, slice, slice.len, ";#", 2);
     defer c.ini_destroy(&parser);
 
     try commonTest(&parser);
@@ -82,7 +82,7 @@ test "file parser" {
     defer _ = c.fclose(file);
 
     var parser: c.ini_Parser = undefined;
-    c.ini_create_file(&parser, file);
+    c.ini_create_file(&parser, file, ";#", 2);
     defer c.ini_destroy(&parser);
 
     try commonTest(&parser);

@@ -23,7 +23,7 @@ fn expectEnumeration(enumeration: []const u8, record: ?Record) !void {
 
 test "empty file" {
     var stream = std.io.fixedBufferStream("");
-    var parser = parse(std.testing.allocator, stream.reader());
+    var parser = parse(std.testing.allocator, stream.reader(), ";#");
     defer parser.deinit();
 
     try expectNull(try parser.next());
@@ -34,7 +34,7 @@ test "empty file" {
 
 test "section" {
     var stream = std.io.fixedBufferStream("[Hello]");
-    var parser = parse(std.testing.allocator, stream.reader());
+    var parser = parse(std.testing.allocator, stream.reader(), ";#");
     defer parser.deinit();
 
     try expectSection("Hello", try parser.next());
@@ -61,7 +61,7 @@ test "key-value-pair" {
         "  key  =  value  ",
     }) |pattern| {
         var stream = std.io.fixedBufferStream(pattern);
-        var parser = parse(std.testing.allocator, stream.reader());
+        var parser = parse(std.testing.allocator, stream.reader(), ";#");
         defer parser.deinit();
 
         try expectKeyValue("key", "value", try parser.next());
@@ -71,7 +71,7 @@ test "key-value-pair" {
 
 test "enumeration" {
     var stream = std.io.fixedBufferStream("enum");
-    var parser = parse(std.testing.allocator, stream.reader());
+    var parser = parse(std.testing.allocator, stream.reader(), ";#");
     defer parser.deinit();
 
     try expectEnumeration("enum", try parser.next());
@@ -80,7 +80,7 @@ test "enumeration" {
 
 test "empty line skipping" {
     var stream = std.io.fixedBufferStream("item a\r\n\r\n\r\nitem b");
-    var parser = parse(std.testing.allocator, stream.reader());
+    var parser = parse(std.testing.allocator, stream.reader(), ";#");
     defer parser.deinit();
 
     try expectEnumeration("item a", try parser.next());
@@ -90,7 +90,7 @@ test "empty line skipping" {
 
 test "multiple sections" {
     var stream = std.io.fixedBufferStream("  [Hello] \r\n[Foo Bar]\n[Hello!]\n");
-    var parser = parse(std.testing.allocator, stream.reader());
+    var parser = parse(std.testing.allocator, stream.reader(), ";#");
     defer parser.deinit();
 
     try expectSection("Hello", try parser.next());
@@ -101,7 +101,7 @@ test "multiple sections" {
 
 test "multiple properties" {
     var stream = std.io.fixedBufferStream("a = b\r\nc =\r\nkey value = core property");
-    var parser = parse(std.testing.allocator, stream.reader());
+    var parser = parse(std.testing.allocator, stream.reader(), ";#");
     defer parser.deinit();
 
     try expectKeyValue("a", "b", try parser.next());
@@ -112,7 +112,7 @@ test "multiple properties" {
 
 test "multiple enumeration" {
     var stream = std.io.fixedBufferStream(" a  \n b  \r\n c  ");
-    var parser = parse(std.testing.allocator, stream.reader());
+    var parser = parse(std.testing.allocator, stream.reader(), ";#");
     defer parser.deinit();
 
     try expectEnumeration("a", try parser.next());
@@ -133,7 +133,7 @@ test "mixed data" {
         \\Bat Out of Hell
         \\The Dark Side of the Moon
     );
-    var parser = parse(std.testing.allocator, stream.reader());
+    var parser = parse(std.testing.allocator, stream.reader(), ";#");
     defer parser.deinit();
 
     try expectSection("Meta", try parser.next());
@@ -156,7 +156,7 @@ test "# comments" {
         \\key = value # comment
         \\enum # comment
     );
-    var parser = parse(std.testing.allocator, stream.reader());
+    var parser = parse(std.testing.allocator, stream.reader(), ";#");
     defer parser.deinit();
 
     try expectSection("section", try parser.next());
@@ -172,7 +172,7 @@ test "; comments" {
         \\key = value ; comment
         \\enum ; comment
     );
-    var parser = parse(std.testing.allocator, stream.reader());
+    var parser = parse(std.testing.allocator, stream.reader(), ";#");
     defer parser.deinit();
 
     try expectSection("section", try parser.next());
