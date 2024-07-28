@@ -38,6 +38,7 @@ pub fn Parser(comptime Reader: type) type {
     return struct {
         const Self = @This();
 
+        allocator: std.mem.Allocator,
         line_buffer: std.ArrayList(u8),
         reader: Reader,
         comment_characters: []const u8,
@@ -59,14 +60,30 @@ pub fn Parser(comptime Reader: type) type {
                 try self.line_buffer.append(0); // append guaranteed space for sentinel
 
                 var line: []const u8 = self.line_buffer.items;
-                if (std.mem.indexOfAny(u8, line, self.comment_characters)) |index| {
-                    const trimmed_slice = std.mem.trim(u8, line[0..index], whitespace);
-                    const comment = std.mem.trim(u8, line[index..], whitespace);
+                var last_index: usize = 0;
 
-                    if ((trimmed_slice.len > 0 and trimmed_slice[trimmed_slice.len - 1] != '=') or comment.len > 1)
-                        line = trimmed_slice;
-                } else {
-                    line = std.mem.trim(u8, line, whitespace);
+                // handle comments and escaping
+                while (last_index < line.len) {
+                    if (std.mem.indexOfAnyPos(u8, line, last_index, self.comment_characters)) |index| {
+                        // escape character if needed, then skip it (it's not a comment)
+                        if (index > 0) {
+                            const previous_index = index - 1;
+                            const previous_char = line[previous_index];
+
+                            if (previous_char == '\\') {
+                                _ = self.line_buffer.orderedRemove(previous_index);
+
+                                last_index = index + 1;
+                                continue;
+                            }
+                        }
+
+                        line = std.mem.trim(u8, line[0..index], whitespace);
+                    } else {
+                        line = std.mem.trim(u8, line, whitespace);
+                    }
+
+                    break;
                 }
 
                 if (line.len == 0)
@@ -95,6 +112,7 @@ pub fn Parser(comptime Reader: type) type {
 /// Returns a new parser that can read the ini structure
 pub fn parse(allocator: std.mem.Allocator, reader: anytype, comment_characters: []const u8) Parser(@TypeOf(reader)) {
     return Parser(@TypeOf(reader)){
+        .allocator = allocator,
         .line_buffer = std.ArrayList(u8).init(allocator),
         .reader = reader,
         .comment_characters = comment_characters,
