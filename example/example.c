@@ -7,9 +7,9 @@ int main() {
   FILE * f = fopen("example.ini", "rb");
   if(!f)
     return 1;
-  
+
   struct ini_Parser parser;
-  ini_create_file(&parser, f);
+  ini_create_file(&parser, f, ";#", 2);
 
   struct ini_Record record;
   while(true)
@@ -17,7 +17,7 @@ int main() {
     enum ini_Error error = ini_next(&parser, &record);
     if(error != INI_SUCCESS)
       goto cleanup;
-    
+
     switch(record.type) {
       case INI_RECORD_NUL: goto done;
       case INI_RECORD_SECTION:

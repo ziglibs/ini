@@ -7,7 +7,7 @@ pub fn main() !void {
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer if (gpa.deinit() != .ok) @panic("memory leaked");
-    var parser = ini.parse(gpa.allocator(), file.reader());
+    var parser = ini.parse(gpa.allocator(), file.reader(), ";#");
     defer parser.deinit();
 
     var writer = std.io.getStdOut().writer();
