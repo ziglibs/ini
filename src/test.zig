@@ -189,6 +189,7 @@ test "comment escaping" {
         \\# Amazing!
         \\names = Budgie;GNOME # Don't mind me
         \\asterisk = \# # An asterisk as a comment character? Surely that can't break anything... right?
+        \\escaped = \#
         \\no_value = #This doesn't have any value
     );
     var parser = parse(std.testing.allocator, stream.reader(), "#");
@@ -196,6 +197,7 @@ test "comment escaping" {
 
     try expectKeyValue("names", "Budgie;GNOME", try parser.next());
     try expectKeyValue("asterisk", "#", try parser.next());
+    try expectKeyValue("escaped", "#", try parser.next());
     try expectKeyValue("no_value", "", try parser.next());
 
     try expectNull(try parser.next());

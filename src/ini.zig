@@ -72,6 +72,7 @@ pub fn Parser(comptime Reader: type) type {
 
                             if (previous_char == '\\') {
                                 _ = self.line_buffer.orderedRemove(previous_index);
+                                line = self.line_buffer.items;
 
                                 last_index = index + 1;
                                 continue;
