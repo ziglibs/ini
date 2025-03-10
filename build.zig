@@ -50,20 +50,19 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(example_zig);
 
-    var main_tests = b.addTest(.{
+    const test_step = b.step("test", "Run library tests");
+    const main_tests = b.addTest(.{
         .root_source_file = b.path("src/test.zig"),
         .optimize = optimize,
     });
+    test_step.dependOn(&b.addRunArtifact(main_tests).step);
 
-    var binding_tests = b.addTest(.{
+    const binding_tests = b.addTest(.{
         .root_source_file = b.path("src/lib-test.zig"),
         .optimize = optimize,
     });
     binding_tests.addIncludePath(b.path("src"));
     binding_tests.linkLibrary(lib);
     binding_tests.linkLibC();
-
-    const test_step = b.step("test", "Run library tests");
-    test_step.dependOn(&main_tests.step);
-    test_step.dependOn(&binding_tests.step);
+    test_step.dependOn(&b.addRunArtifact(binding_tests).step);
 }
