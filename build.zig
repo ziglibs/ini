@@ -14,13 +14,13 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-
     lib.bundle_compiler_rt = true;
     lib.addIncludePath(b.path("src"));
     lib.linkLibC();
-
+    lib.installHeader(b.path("src/ini.h"), "ini.h");
     b.installArtifact(lib);
 
+    const example_step = b.step("example", "Build examples");
     const example_c = b.addExecutable(.{
         .name = "example-c",
         .optimize = optimize,
@@ -37,8 +37,7 @@ pub fn build(b: *std.Build) void {
     example_c.addIncludePath(b.path("src"));
     example_c.linkLibrary(lib);
     example_c.linkLibC();
-
-    b.installArtifact(example_c);
+    example_step.dependOn(&b.addInstallArtifact(example_c, .{}).step);
 
     const example_zig = b.addExecutable(.{
         .name = "example-zig",
@@ -47,8 +46,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
     });
     example_zig.root_module.addImport("ini", b.modules.get("ini").?);
-
-    b.installArtifact(example_zig);
+    example_step.dependOn(&b.addInstallArtifact(example_zig, .{}).step);
 
     const test_step = b.step("test", "Run library tests");
     const main_tests = b.addTest(.{
