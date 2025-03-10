@@ -14,11 +14,10 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-
     lib.bundle_compiler_rt = true;
     lib.addIncludePath(b.path("src"));
     lib.linkLibC();
-
+    lib.installHeader(b.path("src/ini.h"), "ini.h");
     b.installArtifact(lib);
 
     const example_c = b.addExecutable(.{
