@@ -3,7 +3,7 @@
 This is a very simple ini-parser library that provides:
 - Raw record reading
 - Leading/trailing whitespace removal
-- comments based on `;` and `#`
+- Comments
 - Zig API
 - C API
 
@@ -19,7 +19,9 @@ pub fn main() !void {
     const file = try std.fs.cwd().openFile("example.ini", .{});
     defer file.close();
 
-    var parser = ini.parse(std.testing.allocator, file.reader());
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer if (gpa.deinit() != .ok) @panic("memory leaked");
+    var parser = ini.parse(gpa.allocator(), file.reader(), ";#");
     defer parser.deinit();
 
     var writer = std.io.getStdOut().writer();
@@ -46,9 +48,9 @@ int main() {
   FILE * f = fopen("example.ini", "rb");
   if(!f)
     return 1;
-  
+
   struct ini_Parser parser;
-  ini_create_file(&parser, f);
+  ini_create_file(&parser, f, ";#", 2);
 
   struct ini_Record record;
   while(true)
@@ -56,7 +58,7 @@ int main() {
     enum ini_Error error = ini_next(&parser, &record);
     if(error != INI_SUCCESS)
       goto cleanup;
-    
+
     switch(record.type) {
       case INI_RECORD_NUL: goto done;
       case INI_RECORD_SECTION:
