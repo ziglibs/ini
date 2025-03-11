@@ -1,0 +1,13 @@
+.{
+    .name = .ini,
+    .fingerprint = 0x7757b668623d2460,
+    .version = "0.1.0",
+    .minimum_zig_version = "0.14.0",
+    .paths = .{
+        "LICENCE",
+        "README.md",
+        "build.zig",
+        "build.zig.zon",
+        "src/ini.zig",
+    },
+}
