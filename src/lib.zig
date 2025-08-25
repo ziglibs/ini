@@ -131,7 +131,7 @@ export fn ini_next(parser: *IniParser, record: *Record) IniError {
     return .success;
 }
 
-const CReader = std.io.Reader(*std.c.FILE, std.fs.File.ReadError, cReaderRead);
+const CReader = std.Io.GenericReader(*std.c.FILE, std.fs.File.ReadError, cReaderRead);
 
 fn cReader(c_file: *std.c.FILE) CReader {
     return .{ .context = c_file };
