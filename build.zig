@@ -8,11 +8,13 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/ini.zig"),
     });
 
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "ini",
-        .root_source_file = b.path("src/lib.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/lib.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     lib.bundle_compiler_rt = true;
     lib.addIncludePath(b.path("src"));
@@ -23,8 +25,10 @@ pub fn build(b: *std.Build) void {
     const example_step = b.step("example", "Build examples");
     const example_c = b.addExecutable(.{
         .name = "example-c",
-        .optimize = optimize,
-        .target = target,
+        .root_module = b.createModule(.{
+            .optimize = optimize,
+            .target = target,
+        }),
     });
     example_c.addCSourceFile(.{
         .file = b.path("example/example.c"),
@@ -41,23 +45,31 @@ pub fn build(b: *std.Build) void {
 
     const example_zig = b.addExecutable(.{
         .name = "example-zig",
-        .root_source_file = b.path("example/example.zig"),
-        .optimize = optimize,
-        .target = target,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("example/example.zig"),
+            .optimize = optimize,
+            .target = target,
+        }),
     });
     example_zig.root_module.addImport("ini", b.modules.get("ini").?);
     example_step.dependOn(&b.addInstallArtifact(example_zig, .{}).step);
 
     const test_step = b.step("test", "Run library tests");
     const main_tests = b.addTest(.{
-        .root_source_file = b.path("src/test.zig"),
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/test.zig"),
+            .optimize = optimize,
+            .target = target,
+        }),
     });
     test_step.dependOn(&b.addRunArtifact(main_tests).step);
 
     const binding_tests = b.addTest(.{
-        .root_source_file = b.path("src/lib-test.zig"),
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/lib-test.zig"),
+            .optimize = optimize,
+            .target = target,
+        }),
     });
     binding_tests.addIncludePath(b.path("src"));
     binding_tests.linkLibrary(lib);

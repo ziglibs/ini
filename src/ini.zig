@@ -39,7 +39,7 @@ pub fn Parser(comptime Reader: type) type {
         const Self = @This();
 
         allocator: std.mem.Allocator,
-        line_buffer: std.ArrayList(u8),
+        line_buffer: std.array_list.Managed(u8),
         reader: Reader,
         comment_characters: []const u8,
 
@@ -114,7 +114,7 @@ pub fn Parser(comptime Reader: type) type {
 pub fn parse(allocator: std.mem.Allocator, reader: anytype, comment_characters: []const u8) Parser(@TypeOf(reader)) {
     return Parser(@TypeOf(reader)){
         .allocator = allocator,
-        .line_buffer = std.ArrayList(u8).init(allocator),
+        .line_buffer = std.array_list.Managed(u8).init(allocator),
         .reader = reader,
         .comment_characters = comment_characters,
     };
