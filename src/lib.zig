@@ -29,13 +29,18 @@ const Record = extern struct {
 };
 
 const BufferParser = struct {
-    stream: std.io.FixedBufferStream([]const u8),
-    parser: ini.Parser(std.io.FixedBufferStream([]const u8).Reader),
+    stream: std.io.Reader,
+    parser: ini.Parser,
+};
+
+const FileParser = struct {
+    old_reader_adapter: CReader.Adapter,
+    parser: ini.Parser,
 };
 
 const IniParser = union(enum) {
     buffer: BufferParser,
-    file: ini.Parser(CReader),
+    file: FileParser,
 };
 
 const IniError = enum(c.ini_Error) {
@@ -65,29 +70,34 @@ comptime {
 export fn ini_create_buffer(parser: *IniParser, data: [*]const u8, data_length: usize, comment_characters: [*]const u8, comment_characters_length: usize) void {
     parser.* = IniParser{
         .buffer = .{
-            .stream = std.io.fixedBufferStream(data[0..data_length]),
+            .stream = std.io.Reader.fixed(data[0..data_length]),
             .parser = undefined,
         },
     };
     // this is required to have the parser store a pointer to the stream.
-    parser.buffer.parser = ini.parse(std.heap.c_allocator, parser.buffer.stream.reader(), comment_characters[0..comment_characters_length]);
+    parser.buffer.parser = ini.parse(std.heap.c_allocator, &parser.buffer.stream, comment_characters[0..comment_characters_length]);
 }
 
-export fn ini_create_file(parser: *IniParser, file: *std.c.FILE, comment_characters: [*]const u8, comment_characters_length: usize) void {
+export fn ini_create_file(parser: *IniParser, read_buffer: [*]u8, read_buffer_length: usize, file: *std.c.FILE, comment_characters: [*]const u8, comment_characters_length: usize) void {
     parser.* = IniParser{
-        .file = ini.parse(std.heap.c_allocator, cReader(file), comment_characters[0..comment_characters_length]),
+        .file = .{
+            .old_reader_adapter = cReader(file).adaptToNewApi(read_buffer[0..read_buffer_length]),
+            .parser = undefined,
+        },
     };
+
+    parser.file.parser = ini.parse(std.heap.c_allocator, &parser.file.old_reader_adapter.new_interface, comment_characters[0..comment_characters_length]);
 }
 
 export fn ini_destroy(parser: *IniParser) void {
     switch (parser.*) {
         .buffer => |*p| p.parser.deinit(),
-        .file => |*p| p.deinit(),
+        .file => |*p| p.parser.deinit(),
     }
     parser.* = undefined;
 }
 
-const ParseError = error{ OutOfMemory, StreamTooLong } || CReader.Error;
+const ParseError = error{ OutOfMemory, StreamTooLong } || std.io.Reader.Error || std.io.Writer.Error;
 
 fn mapError(err: ParseError) IniError {
     return switch (err) {
@@ -100,7 +110,7 @@ fn mapError(err: ParseError) IniError {
 export fn ini_next(parser: *IniParser, record: *Record) IniError {
     const src_record_or_null: ?ini.Record = switch (parser.*) {
         .buffer => |*p| p.parser.next() catch |e| return mapError(e),
-        .file => |*p| p.next() catch |e| return mapError(e),
+        .file => |*p| p.parser.next() catch |e| return mapError(e),
     };
 
     if (src_record_or_null) |src_record| {

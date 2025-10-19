@@ -4,12 +4,13 @@
 #include <stdbool.h>
 
 int main() {
-  FILE * f = fopen("example.ini", "rb");
+  FILE * f = fopen("example.ini", "r");
   if(!f)
     return 1;
 
   struct ini_Parser parser;
-  ini_create_file(&parser, f, ";#", 2);
+  char read_buffer[1024] = {0};
+  ini_create_file(&parser, read_buffer, sizeof read_buffer, f, ";#", 2);
 
   struct ini_Record record;
   while(true)
