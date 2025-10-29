@@ -6,6 +6,8 @@ pub fn build(b: *std.Build) void {
 
     _ = b.addModule("ini", .{
         .root_source_file = b.path("src/ini.zig"),
+        .optimize = optimize,
+        .target = target,
     });
 
     const lib = b.addLibrary(.{

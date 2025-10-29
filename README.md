@@ -12,19 +12,22 @@ This is a very simple ini-parser library that provides:
 ### Zig 
 
 ```zig
-const std = @import("std");
-const ini = @import("ini");
-
 pub fn main() !void {
     const file = try std.fs.cwd().openFile("example.ini", .{});
     defer file.close();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer if (gpa.deinit() != .ok) @panic("memory leaked");
-    var parser = ini.parse(gpa.allocator(), file.reader(), ";#");
+
+    var read_buffer: [1024]u8 = undefined;
+    var file_reader = file.reader(&read_buffer);
+    var parser = ini.parse(gpa.allocator(), &file_reader.interface, ";#");
     defer parser.deinit();
 
-    var writer = std.io.getStdOut().writer();
+    var write_buffer: [1024]u8 = undefined;
+    var file_writer = std.fs.File.stdout().writer(&write_buffer);
+    var writer = &file_writer.interface;
+    defer writer.flush() catch @panic("Could not flush to stdout");
 
     while (try parser.next()) |record| {
         switch (record) {
@@ -45,12 +48,13 @@ pub fn main() !void {
 #include <stdbool.h>
 
 int main() {
-  FILE * f = fopen("example.ini", "rb");
+  FILE * f = fopen("example.ini", "r");
   if(!f)
     return 1;
 
   struct ini_Parser parser;
-  ini_create_file(&parser, f, ";#", 2);
+  char read_buffer[1024] = {0};
+  ini_create_file(&parser, read_buffer, sizeof read_buffer, f, ";#", 2);
 
   struct ini_Record record;
   while(true)

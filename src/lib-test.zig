@@ -82,7 +82,8 @@ test "file parser" {
     defer _ = c.fclose(file);
 
     var parser: c.ini_Parser = undefined;
-    c.ini_create_file(&parser, file, ";#", 2);
+    var read_buffer: [1024]u8 = undefined;
+    c.ini_create_file(&parser, &read_buffer, read_buffer.len, file, ";#", 2);
     defer c.ini_destroy(&parser);
 
     try commonTest(&parser);
